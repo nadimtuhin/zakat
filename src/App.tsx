@@ -3,8 +3,12 @@ import { Calculator, Heart, DollarSign, Coins, Gem, Building2, Briefcase } from 
 import currency from 'currency.js';
 
 interface Asset {
+  id: string;
   type: string;
   amount: number;
+  description?: string;
+  weight?: number;
+  unit?: MetalUnit;
 }
 
 interface MetalPrices {
@@ -12,7 +16,7 @@ interface MetalPrices {
   silver: number;
 }
 
-type MetalUnit = 'g' | 'oz';
+type MetalUnit = 'g' | 'oz' | 'vori' | 'carat21' | 'carat22' | 'roti';
 
 interface Country {
   name: string;
@@ -80,9 +84,41 @@ function App() {
   const nisabValue = 5200; // Approximate nisab value in USD
   const zakatRate = 0.025; // 2.5%
 
-  const totalWealth = assets.reduce((sum, asset) => sum + asset.amount, 0);
+  const [assetGroups, setAssetGroups] = useState<{ [key: string]: Asset[] }>(() => ({
+    'Cash & Bank Balances': [{ id: crypto.randomUUID(), type: 'Cash & Bank Balances', amount: 0, description: 'Cash in hand' }],
+    'Gold': [{ id: crypto.randomUUID(), type: 'Gold', amount: goldWeight * (metalPrices.gold / 31.1035), weight: goldWeight, unit: goldUnit, description: 'Gold jewelry' }],
+    'Silver': [{ id: crypto.randomUUID(), type: 'Silver', amount: silverWeight * (metalPrices.silver / 31.1035), weight: silverWeight, unit: silverUnit, description: 'Silver items' }],
+    'Investments & Shares': [{ id: crypto.randomUUID(), type: 'Investments & Shares', amount: 0, description: 'Stocks' }],
+    'Property for Business': [{ id: crypto.randomUUID(), type: 'Property for Business', amount: 0, description: 'Commercial property' }],
+    'Business Inventory': [{ id: crypto.randomUUID(), type: 'Business Inventory', amount: 0, description: 'Current inventory' }],
+  }));
+
+  const totalWealth = Object.values(assetGroups).flat().reduce((sum, asset) => sum + asset.amount, 0);
   const zakatPayable = totalWealth >= nisabValue;
   const zakatAmount = zakatPayable ? totalWealth * zakatRate : 0;
+
+  const convertToGrams = (weight: number, unit: MetalUnit): number => {
+    const conversionFactors = {
+      g: 1,
+      oz: 31.1035,
+      vori: 11.664, // 1 vori = 11.664 grams
+      carat21: 1, // Same weight but different purity
+      carat22: 1, // Same weight but different purity
+      roti: 0.972 // 1 roti = 0.972 grams
+    };
+    return weight * conversionFactors[unit];
+  };
+
+  const getPurityFactor = (unit: MetalUnit): number => {
+    switch (unit) {
+      case 'carat21':
+        return 0.875; // 21/24 karat
+      case 'carat22':
+        return 0.916; // 22/24 karat
+      default:
+        return 1;
+    }
+  };
 
   const handleMetalWeightChange = (metal: 'gold' | 'silver', weight: number) => {
     const conversionFactor = 31.1035; // grams per troy ounce
@@ -90,13 +126,17 @@ function App() {
     if (metal === 'gold') {
       setGoldWeight(weight);
       const newAssets = [...assets];
-      const weightInOunces = goldUnit === 'g' ? weight / conversionFactor : weight;
+      const weightInGrams = convertToGrams(weight, goldUnit);
+      const purityFactor = getPurityFactor(goldUnit);
+      const weightInOunces = (weightInGrams / conversionFactor) * purityFactor;
       newAssets[1].amount = weightInOunces * metalPrices.gold;
       setAssets(newAssets);
     } else {
       setSilverWeight(weight);
       const newAssets = [...assets];
-      const weightInOunces = silverUnit === 'g' ? weight / conversionFactor : weight;
+      const weightInGrams = convertToGrams(weight, silverUnit);
+      const purityFactor = getPurityFactor(silverUnit);
+      const weightInOunces = (weightInGrams / conversionFactor) * purityFactor;
       newAssets[2].amount = weightInOunces * metalPrices.silver;
       setAssets(newAssets);
     }
@@ -150,7 +190,19 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 p-6">
       <div className="max-w-3xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="bg-white rounded-2xl shadow-xl p-8 mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <a href="https://github.com/nadimtuhin/zakat" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors">
+                <svg height="24" viewBox="0 0 16 16" width="24" className="fill-current"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+                <span>View on GitHub</span>
+              </a>
+            </div>
+            <a href="https://github.com/nadimtuhin/zakat/stargazers" target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-3 py-1 bg-gray-100 hover:bg-gray-200 transition-colors rounded-md text-sm text-gray-700">
+              <svg className="w-4 h-4 mr-1 fill-current text-yellow-500" viewBox="0 0 16 16"><path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z"></path></svg>
+              Star
+            </a>
+          </div>
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
               <Calculator className="w-8 h-8 text-emerald-600" />
@@ -170,54 +222,127 @@ function App() {
           </div>
 
           <div className="space-y-6">
-            {assets.map((asset, index) => (
-              <div key={asset.type} className="bg-gray-50 p-4 rounded-lg">
-                <div className="flex items-center gap-3 mb-2">
-                  {getIconForAssetType(asset.type)}
-                  <label className="text-gray-700 font-medium">{asset.type}</label>
+            {Object.entries(assetGroups).map(([type, assets]) => (
+              <div key={type} className="bg-gray-50 p-4 rounded-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    {getIconForAssetType(type)}
+                    <label className="text-gray-700 font-medium">{type}</label>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const newAsset = {
+                        id: crypto.randomUUID(),
+                        type,
+                        amount: 0,
+                        description: '',
+                        ...(type === 'Gold' || type === 'Silver' ? { weight: 0, unit: 'g' } : {})
+                      };
+                      setAssetGroups(prev => ({
+                        ...prev,
+                        [type]: [...prev[type], newAsset]
+                      }));
+                    }}
+                    className="px-3 py-1 text-sm bg-emerald-50 text-emerald-600 rounded-md hover:bg-emerald-100 transition-colors"
+                  >
+                    + Add Entry
+                  </button>
                 </div>
-                {
-                  asset.type === 'Gold' || asset.type === 'Silver' ? (
-                    <div>
-                      <div className="flex gap-2">
+                <div className="space-y-4">
+                  {assets.map((asset) => (
+                    <div key={asset.id} className="bg-white p-4 rounded-lg border border-gray-200">
+                      <div className="flex gap-4 mb-2">
+                        <input
+                          type="text"
+                          value={asset.description}
+                          onChange={(e) => {
+                            const newAssets = [...assetGroups[type]];
+                            const index = newAssets.findIndex(a => a.id === asset.id);
+                            newAssets[index] = { ...newAssets[index], description: e.target.value };
+                            setAssetGroups(prev => ({ ...prev, [type]: newAssets }));
+                          }}
+                          className="flex-1 px-3 py-1 text-sm border border-gray-300 rounded-md"
+                          placeholder="Description"
+                        />
+                        {assets.length > 1 && (
+                          <button
+                            onClick={() => {
+                              setAssetGroups(prev => ({
+                                ...prev,
+                                [type]: prev[type].filter(a => a.id !== asset.id)
+                              }));
+                            }}
+                            className="px-2 py-1 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      {type === 'Gold' || type === 'Silver' ? (
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            value={asset.weight}
+                            onChange={(e) => {
+                              const weight = parseFloat(e.target.value) || 0;
+                              const newAssets = [...assetGroups[type]];
+                              const index = newAssets.findIndex(a => a.id === asset.id);
+                              const weightInGrams = convertToGrams(weight, asset.unit || 'g');
+                              const purityFactor = getPurityFactor(asset.unit || 'g');
+                              const weightInOunces = (weightInGrams / 31.1035) * purityFactor;
+                              newAssets[index] = {
+                                ...newAssets[index],
+                                weight,
+                                amount: weightInOunces * metalPrices[type.toLowerCase() as 'gold' | 'silver']
+                              };
+                              setAssetGroups(prev => ({ ...prev, [type]: newAssets }));
+                            }}
+                            className="flex-1 px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                            placeholder={`Enter weight in ${asset.unit || 'g'}`}
+                          />
+                          <select
+                            value={asset.unit || 'g'}
+                            onChange={(e) => {
+                              const unit = e.target.value as MetalUnit;
+                              const newAssets = [...assetGroups[type]];
+                              const index = newAssets.findIndex(a => a.id === asset.id);
+                              newAssets[index] = { ...newAssets[index], unit };
+                              setAssetGroups(prev => ({ ...prev, [type]: newAssets }));
+                            }}
+                            className="px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white"
+                          >
+                            <option value="g">Gram (g)</option>
+                            <option value="oz">Troy Ounce (oz)</option>
+                            <option value="vori">Vori (বরি)</option>
+                            <option value="carat21">21 Carat</option>
+                            <option value="carat22">22 Carat</option>
+                            <option value="roti">Roti (রতি)</option>
+                          </select>
+                        </div>
+                      ) : (
                         <input
                           type="number"
-                          value={asset.type === 'Gold' ? goldWeight : silverWeight}
-                          onChange={(e) => handleMetalWeightChange(
-                            asset.type.toLowerCase() as 'gold' | 'silver',
-                            parseFloat(e.target.value) || 0
-                          )}
-                          className="flex-1 px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                          placeholder={`Enter weight in ${asset.type === 'Gold' ? goldUnit : silverUnit}`}
+                          value={asset.amount}
+                          onChange={(e) => {
+                            const newAssets = [...assetGroups[type]];
+                            const index = newAssets.findIndex(a => a.id === asset.id);
+                            newAssets[index] = { ...newAssets[index], amount: parseFloat(e.target.value) || 0 };
+                            setAssetGroups(prev => ({ ...prev, [type]: newAssets }));
+                          }}
+                          className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                          placeholder="Enter amount"
                         />
-                        <select
-                          value={asset.type === 'Gold' ? goldUnit : silverUnit}
-                          onChange={(e) => handleUnitChange(
-                            asset.type.toLowerCase() as 'gold' | 'silver',
-                            e.target.value as MetalUnit
-                          )}
-                          className="px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white"
-                        >
-                          <option value="g">g</option>
-                          <option value="oz">oz</option>
-                        </select>
-                      </div>
-                      <div className="mt-2 text-sm text-gray-600">
-                        Current value: {formatCurrency(asset.amount)}
-                        {loading && ' (Loading prices...)'}
-                        {error && ` (${error})`}
-                      </div>
+                      )}
+                      {(type === 'Gold' || type === 'Silver') && (
+                        <div className="mt-2 text-sm text-gray-600">
+                          Current value: {formatCurrency(asset.amount)}
+                          {loading && ' (Loading prices...)'}
+                          {error && ` (${error})`}
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <input
-                      type="number"
-                      value={asset.amount}
-                      onChange={(e) => handleAssetChange(index, parseFloat(e.target.value) || 0)}
-                      className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                      placeholder="Enter amount in USD"
-                    />
-                  )
-                }
+                  ))}
+                </div>
               </div>
             ))}
           </div>
