@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calculator, Heart, DollarSign, Coins, Gem, Building2, Briefcase } from 'lucide-react';
+import { Calculator, Heart, DollarSign, Coins, Gem, Building2, Briefcase, RotateCcw } from 'lucide-react';
 import currency from 'currency.js';
 
 interface Asset {
@@ -41,7 +41,8 @@ const countries: Country[] = [
 
 function App() {
   const [selectedCountry, setSelectedCountry] = useState<Country>(() => {
-    return countries.find(c => c.name === 'Bangladesh') || countries[0];
+    const savedCountry = localStorage.getItem('selectedCountry');
+    return savedCountry ? JSON.parse(savedCountry) : (countries.find(c => c.name === 'Bangladesh') || countries[0]);
   });
   const [metalPrices, setMetalPrices] = useState<MetalPrices>({ gold: 0, silver: 0 });
   const [goldWeight, setGoldWeight] = useState(0);
@@ -84,7 +85,9 @@ function App() {
   const nisabValue = 5200; // Approximate nisab value in USD
   const zakatRate = 0.025; // 2.5%
 
-  const [assetGroups, setAssetGroups] = useState<{ [key: string]: Asset[] }>(() => ({
+  const [assetGroups, setAssetGroups] = useState<{ [key: string]: Asset[] }>(() => {
+    const savedAssetGroups = localStorage.getItem('assetGroups');
+    return savedAssetGroups ? JSON.parse(savedAssetGroups) : ({
     'Cash & Bank Balances': [{ id: crypto.randomUUID(), type: 'Cash & Bank Balances', amount: 0, description: 'Cash in hand' }],
     'Gold': [{ id: crypto.randomUUID(), type: 'Gold', amount: goldWeight * (metalPrices.gold / 31.1035), weight: goldWeight, unit: goldUnit, description: 'Gold jewelry' }],
     'Silver': [{ id: crypto.randomUUID(), type: 'Silver', amount: silverWeight * (metalPrices.silver / 31.1035), weight: silverWeight, unit: silverUnit, description: 'Silver items' }],
@@ -92,6 +95,25 @@ function App() {
     'Property for Business': [{ id: crypto.randomUUID(), type: 'Property for Business', amount: 0, description: 'Commercial property' }],
     'Business Inventory': [{ id: crypto.randomUUID(), type: 'Business Inventory', amount: 0, description: 'Current inventory' }],
   }));
+
+  useEffect(() => {
+    localStorage.setItem('selectedCountry', JSON.stringify(selectedCountry));
+    localStorage.setItem('assetGroups', JSON.stringify(assetGroups));
+  }, [selectedCountry, assetGroups]);
+
+  const handleReset = () => {
+    localStorage.removeItem('selectedCountry');
+    localStorage.removeItem('assetGroups');
+    setSelectedCountry(countries.find(c => c.name === 'Bangladesh') || countries[0]);
+    setAssetGroups({
+      'Cash & Bank Balances': [{ id: crypto.randomUUID(), type: 'Cash & Bank Balances', amount: 0, description: 'Cash in hand' }],
+      'Gold': [{ id: crypto.randomUUID(), type: 'Gold', amount: 0, weight: 0, unit: 'g', description: 'Gold jewelry' }],
+      'Silver': [{ id: crypto.randomUUID(), type: 'Silver', amount: 0, weight: 0, unit: 'g', description: 'Silver items' }],
+      'Investments & Shares': [{ id: crypto.randomUUID(), type: 'Investments & Shares', amount: 0, description: 'Stocks' }],
+      'Property for Business': [{ id: crypto.randomUUID(), type: 'Property for Business', amount: 0, description: 'Commercial property' }],
+      'Business Inventory': [{ id: crypto.randomUUID(), type: 'Business Inventory', amount: 0, description: 'Current inventory' }],
+    });
+  };
 
   const totalWealth = Object.values(assetGroups).flat().reduce((sum, asset) => sum + asset.amount, 0);
   const zakatPayable = totalWealth >= nisabValue;
@@ -208,6 +230,13 @@ function App() {
               <Calculator className="w-8 h-8 text-emerald-600" />
               <h1 className="text-3xl font-bold text-gray-800">Zakat Calculator</h1>
             </div>
+            <button
+              onClick={handleReset}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Reset
+            </button>
             <select
               value={selectedCountry.name}
               onChange={(e) => setSelectedCountry(countries.find(c => c.name === e.target.value) || countries[0])}
@@ -242,6 +271,25 @@ function App() {
                         ...prev,
                         [type]: [...prev[type], newAsset]
                       }));
+
+  useEffect(() => {
+    localStorage.setItem('selectedCountry', JSON.stringify(selectedCountry));
+    localStorage.setItem('assetGroups', JSON.stringify(assetGroups));
+  }, [selectedCountry, assetGroups]);
+
+  const handleReset = () => {
+    localStorage.removeItem('selectedCountry');
+    localStorage.removeItem('assetGroups');
+    setSelectedCountry(countries.find(c => c.name === 'Bangladesh') || countries[0]);
+    setAssetGroups({
+      'Cash & Bank Balances': [{ id: crypto.randomUUID(), type: 'Cash & Bank Balances', amount: 0, description: 'Cash in hand' }],
+      'Gold': [{ id: crypto.randomUUID(), type: 'Gold', amount: 0, weight: 0, unit: 'g', description: 'Gold jewelry' }],
+      'Silver': [{ id: crypto.randomUUID(), type: 'Silver', amount: 0, weight: 0, unit: 'g', description: 'Silver items' }],
+      'Investments & Shares': [{ id: crypto.randomUUID(), type: 'Investments & Shares', amount: 0, description: 'Stocks' }],
+      'Property for Business': [{ id: crypto.randomUUID(), type: 'Property for Business', amount: 0, description: 'Commercial property' }],
+      'Business Inventory': [{ id: crypto.randomUUID(), type: 'Business Inventory', amount: 0, description: 'Current inventory' }],
+    });
+  };
                     }}
                     className="px-3 py-1 text-sm bg-emerald-50 text-emerald-600 rounded-md hover:bg-emerald-100 transition-colors"
                   >
@@ -271,6 +319,25 @@ function App() {
                                 ...prev,
                                 [type]: prev[type].filter(a => a.id !== asset.id)
                               }));
+
+  useEffect(() => {
+    localStorage.setItem('selectedCountry', JSON.stringify(selectedCountry));
+    localStorage.setItem('assetGroups', JSON.stringify(assetGroups));
+  }, [selectedCountry, assetGroups]);
+
+  const handleReset = () => {
+    localStorage.removeItem('selectedCountry');
+    localStorage.removeItem('assetGroups');
+    setSelectedCountry(countries.find(c => c.name === 'Bangladesh') || countries[0]);
+    setAssetGroups({
+      'Cash & Bank Balances': [{ id: crypto.randomUUID(), type: 'Cash & Bank Balances', amount: 0, description: 'Cash in hand' }],
+      'Gold': [{ id: crypto.randomUUID(), type: 'Gold', amount: 0, weight: 0, unit: 'g', description: 'Gold jewelry' }],
+      'Silver': [{ id: crypto.randomUUID(), type: 'Silver', amount: 0, weight: 0, unit: 'g', description: 'Silver items' }],
+      'Investments & Shares': [{ id: crypto.randomUUID(), type: 'Investments & Shares', amount: 0, description: 'Stocks' }],
+      'Property for Business': [{ id: crypto.randomUUID(), type: 'Property for Business', amount: 0, description: 'Commercial property' }],
+      'Business Inventory': [{ id: crypto.randomUUID(), type: 'Business Inventory', amount: 0, description: 'Current inventory' }],
+    });
+  };
                             }}
                             className="px-2 py-1 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
                           >
