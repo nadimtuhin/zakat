@@ -30,7 +30,7 @@ async function captureScreenshots() {
   for (const config of screenshots) {
     console.log(`Capturing ${config.name} screenshot...`);
     await captureWebsite.file(
-      'http://localhost:5173/',
+      'http://localhost:5050/',
       path.join(screenshotsDir, `screenshot-${config.name}.png`),
       {
         width: config.width,
