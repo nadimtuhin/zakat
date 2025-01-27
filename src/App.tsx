@@ -51,6 +51,9 @@ const countries: Country[] = [
 const NISAB_GOLD_WEIGHT = 85; // 85 grams of gold
 const ZAKAT_RATE = 0.025; // 2.5%
 
+const METAL_PRICE_API_BASE = 'https://api.metalpriceapi.com/v1';
+const METAL_PRICE_API_KEY = import.meta.env.VITE_METAL_PRICE_API_KEY;
+
 function App() {
   const [selectedCountry, setSelectedCountry] = useState<Country>(() => {
     const savedCountry = localStorage.getItem("selectedCountry");
@@ -70,26 +73,38 @@ function App() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchMetalPrices = async () => {
+    async function fetchMetalPrices() {
       try {
-        const response = await fetch("https://api.metals.live/v1/spot");
-        if (!response.ok) throw new Error("Failed to fetch metal prices");
+        const response = await fetch(
+          `${METAL_PRICE_API_BASE}/latest?api_key=${METAL_PRICE_API_KEY}&base=USD&currencies=XAU,XAG`
+        );
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch metal prices');
+        }
+
         const data = await response.json();
-        const goldPrice = data.find((metal: any) => metal.gold)?.gold || 0;
-        const silverPrice =
-          data.find((metal: any) => metal.silver)?.silver || 0;
+        
+        // Convert from troy ounce to gram (1 troy oz = 31.1034768 grams)
+        const troyOunceToGram = 31.1034768;
+        
         setMetalPrices({
-          gold: goldPrice * selectedCountry.rate,
-          silver: silverPrice * selectedCountry.rate,
+          // XAU is gold price per troy ounce, convert to price per gram
+          gold: data.rates.XAU ? (1 / data.rates.XAU) / troyOunceToGram : 0,
+          // XAG is silver price per troy ounce, convert to price per gram
+          silver: data.rates.XAG ? (1 / data.rates.XAG) / troyOunceToGram : 0,
         });
-        setLoading(false);
-      } catch (err) {
-        setError("Failed to fetch metal prices. Please try again later.");
-        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching metal prices:', error);
       }
-    };
+    }
+
     fetchMetalPrices();
-  }, [selectedCountry]);
+    // Fetch prices every 60 seconds (or according to your API plan)
+    const interval = setInterval(fetchMetalPrices, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const [assets, setAssets] = useState<Asset[]>([
     { type: "Cash & Bank Balances", amount: 0 },
