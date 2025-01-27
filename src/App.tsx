@@ -39,6 +39,9 @@ const countries: Country[] = [
   { name: 'Turkey', currency: 'TRY', symbol: '₺', rate: 31.93 }
 ];
 
+const NISAB_GOLD_WEIGHT = 85; // 85 grams of gold
+const ZAKAT_RATE = 0.025; // 2.5%
+
 function App() {
   const [selectedCountry, setSelectedCountry] = useState<Country>(() => {
     const savedCountry = localStorage.getItem('selectedCountry');
@@ -114,8 +117,9 @@ function App() {
   };
 
   const totalWealth = Object.values(assetGroups).flat().reduce((sum, asset) => sum + asset.amount, 0);
+  const nisabValue = (NISAB_GOLD_WEIGHT / 31.1035) * metalPrices.gold; // Convert 85g to troy ounces and multiply by gold price
   const zakatPayable = totalWealth >= nisabValue;
-  const zakatAmount = zakatPayable ? totalWealth * zakatRate : 0;
+  const zakatAmount = zakatPayable ? totalWealth * ZAKAT_RATE : 0;
 
   const convertToGrams = (weight: number, unit: MetalUnit): number => {
     const conversionFactors = {
